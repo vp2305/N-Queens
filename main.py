@@ -1,15 +1,14 @@
 from chessboard import Chess
 
-# Q. What is the time complexity of the minConflict function?
-# A. O(n^2)
-
 
 def main():
     """
     Main function.
     """
+    # n = int(input("Enter the number of queens: "))
+    n = 10000
     # Create a new instance of the class
-    chessboard = Chess(height=100000, width=100000, maxSteps=1000000)
+    chessboard = Chess(height=n, width=n, maxSteps=10000)
     # Print the chessboard
     # chessboard.printChessboard()
     chessboard.minConflict()

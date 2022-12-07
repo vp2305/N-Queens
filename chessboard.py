@@ -1,7 +1,9 @@
-from random import randint
+import random
 from copy import deepcopy
+import numpy as np
 
 
+# For loop - createChessboard - Good enough, getNumberOfAttacks, updateColumnDiagonalQueens, minConflict, conflicts, getConflictedQueen, printChessboard
 class Chess:
     def __init__(self, height, width, maxSteps) -> None:
         self.height = height
@@ -10,7 +12,7 @@ class Chess:
         self.numberOfQueens = height
         self.grid = []
         self.queens = []
-        self.columnQueens = {}
+        self.rowQueens = {}
         self.rightDiagonalQueens = {}
         self.leftDiagonalQueens = {}
         self.numberOfAttacks = -1
@@ -18,22 +20,27 @@ class Chess:
         self.updateColumnDiagonalQueens()
         self.getNumberOfAttacks()
 
+    def solvedCheck(self) -> bool:
+        """
+        Check if the chessboard is solved.
+        """
+        if self.numberOfAttacks == 0:
+            return True
+        else:
+            return False
+
     def createChessboard(self) -> None:
         """
         Create the chessboard and place queens.
         """
-        columns = [i for i in range(self.width)]
-        for i in range(self.height):
-            self.grid.append([])
-            randomColumnIdx = randint(0, len(columns) - 1)
-            randomColumn = columns[randomColumnIdx]
-            for j in range(self.width):
-                if randomColumn == j:
-                    self.grid[i].append(1)
-                    self.queens.append((i, j))
-                    columns.remove(columns[randomColumnIdx])
-                else:
-                    self.grid[i].append(0)
+        print("Creating chessboard...")
+
+        random_indices = random.sample(range(self.height), k=self.width)
+        self.grid = np.zeros((self.height, self.width), dtype=int)
+
+        for idx in random_indices:
+            self.grid[idx, random_indices[idx]] = 1
+            self.queens.append((idx, random_indices[idx]))
 
     def printChessboard(self) -> None:
         """
@@ -57,7 +64,7 @@ class Chess:
         for queen in self.queens:
             (row, column) = queen
             # get row conflict
-            self.numberOfAttacks += self.columnQueens.get(column) - 1
+            self.numberOfAttacks += self.rowQueens.get(row) - 1
             # get right diagonal conflict
             self.numberOfAttacks += self.rightDiagonalQueens.get(column - row) - 1
             # get left diagonal conflict
@@ -73,7 +80,7 @@ class Chess:
         for queen in self.queens:
             (row, column) = queen
             # Update the column queens.
-            self.columnQueens[column] = self.columnQueens.get(column, 0) + 1
+            self.rowQueens[row] = self.rowQueens.get(row, 0) + 1
             # Add all the queens in the right diagonal.
             self.rightDiagonalQueens[column - row] = (
                 self.rightDiagonalQueens.get((column - row), 0) + 1
@@ -91,15 +98,19 @@ class Chess:
         """
         for i in range(self.maxSteps):
             if self.solvedCheck():
-                print(f"Chessboard solved in {i} steps.")
+                print(
+                    f"\nChessboard solved in {i} steps for {len(self.queens)} queens."
+                )
                 return True
             else:
                 print(f"Step {i}:")
                 conflictedQueen: tuple = self.getConflictedQueen()
                 self.conflicts(conflictedQueen)
+                print("Number of attacking queens: ", self.numberOfAttacks)
                 # self.printChessboard()
 
-        print(f"Chessboard not solved\nTry increasing max steps.")
+        # If the chessboard is not solved after max steps, return false.
+        print(f"\nChessboard not solved\nTry increasing max steps.")
         print(f"Number of queens: {len(self.queens)}")
         return False
 
@@ -107,59 +118,41 @@ class Chess:
         """
         Determine a move that will minimize the number of conflicts.
         """
+        # We get the conflictedQueen
         (row, column) = conflictedQueen
+        # Get the current conflict for the conflictQueen.
         minConflict = self.getQueenConflict(conflictedQueen)
+        # minNumberOfAttacks = deepcopy(self.numberOfAttacks)
+        # Store the coordinate of the queen with the least conflict.
         minConflictCoordinate = conflictedQueen
-        for i in range(self.width):
+
+        # Go through all the columns and find the column with the least conflict.
+        for i in range(self.height):
             if i != column:
-                self.moveQueen(conflictedQueen, (row, i))
-                newQueenConflict = self.getQueenConflict((row, i))
-                if newQueenConflict < minConflict:
-                    minConflict = newQueenConflict
-                    minConflictCoordinate = (row, i)
-                elif newQueenConflict == minConflict:
-                    if randint(0, 1) == 0:
-                        minConflict = newQueenConflict
-                        minConflictCoordinate = (row, i)
-                self.moveQueen((row, i), conflictedQueen)
+                # Move the conflicted queen to the new destination within the column of the conflicted queen.
+                self.moveQueen(conflictedQueen, (i, column))
+                # Get the number of conflicts for the queen.
+                currentConflict = self.getQueenConflict((i, column))
+                # If the current conflict is less than the minimum conflict, update the minimum conflict.
+                if currentConflict < minConflict:
+                    minConflict = currentConflict
+                    minConflictCoordinate = (i, column)
+                    self.queens.remove(conflictedQueen)
+                    self.queens.append(minConflictCoordinate)
+                    return
 
-        if minConflictCoordinate != conflictedQueen:
-            self.moveQueen(conflictedQueen, minConflictCoordinate)
-            # Update the queens.
-            self.queens.remove(conflictedQueen)
-            self.queens.append(minConflictCoordinate)
+                # If the current conflict is the same as the minimum conflict, choose a random column.
+                elif currentConflict == minConflict:
+                    if random.randint(0, 1):
+                        minConflictCoordinate = (i, column)
+                # Move the queen back to the original position.
+                self.moveQueen((i, column), conflictedQueen)
 
-    def moveQueen(self, queen: tuple, newPosition: tuple) -> None:
-        """
-        Move a queen to a new column.
-        """
-        (row, column) = queen
-        (newRow, newColumn) = newPosition
-        previousQueenConflict = self.getQueenConflict(queen)
-
-        # Remove the queen from the column and diagonal queens.
-        self.columnQueens[column] -= 1
-        self.rightDiagonalQueens[column - row] -= 1
-        self.leftDiagonalQueens[row + column] -= 1
-
-        # Move the queen to the new column.
-        self.grid[row][column] = 0
-        self.grid[newRow][newColumn] = 1
-
-        # Update the column and diagonal queens.
-        self.columnQueens[newColumn] = self.columnQueens.get(newColumn, 0) + 1
-        self.rightDiagonalQueens[newColumn - newRow] = (
-            self.rightDiagonalQueens.get((newColumn - newRow), 0) + 1
-        )
-        self.leftDiagonalQueens[newRow + newColumn] = (
-            self.leftDiagonalQueens.get((newRow + newColumn), 0) + 1
-        )
-
-        # Update the number of attacks.
-        # print("Previous number of attacks: ", self.numberOfAttacks)
-        newQueenConflict = self.getQueenConflict(newPosition)
-        self.numberOfAttacks += newQueenConflict - previousQueenConflict
-        # print("New number of attacks: ", self.numberOfAttacks)
+        # If we don't find a column with less conflict, we move the queen to a random column.
+        self.moveQueen(conflictedQueen, minConflictCoordinate)
+        # Update the queen's position.
+        self.queens.remove(conflictedQueen)
+        self.queens.append(minConflictCoordinate)
 
     def getConflictedQueen(self) -> tuple:
         """
@@ -177,12 +170,44 @@ class Chess:
         sortedConflictedQueen = sorted(
             maxConflictQueen.items(), key=lambda x: x[0], reverse=True
         )
+
         mostConflictedQueenList = sortedConflictedQueen[0][1]
         # Choose a random queen from the list of queens with the most conflicts.
         conflictedQueen = mostConflictedQueenList[
-            randint(0, len(mostConflictedQueenList) - 1)
+            random.randint(0, len(mostConflictedQueenList) - 1)
         ]
+
         return conflictedQueen
+
+    def moveQueen(self, queen: tuple, newPosition: tuple) -> None:
+        """
+        Move a queen to a new column.
+        """
+        (row, column) = queen
+        (newRow, newColumn) = newPosition
+        previousQueenConflict = self.getQueenConflict(queen)
+
+        # Remove the queen from the column and diagonal queens.
+        self.rowQueens[row] -= 1
+        self.rightDiagonalQueens[column - row] -= 1
+        self.leftDiagonalQueens[row + column] -= 1
+
+        # Move the queen to the new column.
+        self.grid[row][column] = 0
+        self.grid[newRow][newColumn] = 1
+
+        # Update the column and diagonal queens.
+        self.rowQueens[newRow] = self.rowQueens.get(newRow, 0) + 1
+        self.rightDiagonalQueens[newColumn - newRow] = (
+            self.rightDiagonalQueens.get((newColumn - newRow), 0) + 1
+        )
+        self.leftDiagonalQueens[newRow + newColumn] = (
+            self.leftDiagonalQueens.get((newRow + newColumn), 0) + 1
+        )
+
+        # Update the number of attacks.
+        newQueenConflict = self.getQueenConflict(newPosition)
+        self.numberOfAttacks += newQueenConflict - previousQueenConflict
 
     def getQueenConflict(self, queen: tuple) -> int:
         """
@@ -190,19 +215,10 @@ class Chess:
         """
         (row, column) = queen
         # get row conflict
-        numberOfAttacks = self.columnQueens.get(column) - 1
+        numberOfAttacks = self.rowQueens.get(row) - 1
         # get right diagonal conflict
         numberOfAttacks += self.rightDiagonalQueens.get(column - row) - 1
         # get left diagonal conflict
         numberOfAttacks += self.leftDiagonalQueens.get(row + column) - 1
 
         return numberOfAttacks
-
-    def solvedCheck(self) -> bool:
-        """
-        Check if the chessboard is solved.
-        """
-        if self.numberOfAttacks == 0:
-            return True
-        else:
-            return False
