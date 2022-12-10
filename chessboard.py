@@ -148,11 +148,15 @@ class Chess:
                 # Move the queen back to the original position.
                 self.moveQueen((i, column), conflictedQueen)
 
-        # If we don't find a column with less conflict, we move the queen to a random column.
-        self.moveQueen(conflictedQueen, minConflictCoordinate)
-        # Update the queen's position.
-        self.queens.remove(conflictedQueen)
-        self.queens.append(minConflictCoordinate)
+        if minConflictCoordinate != conflictedQueen:
+            # If we don't find a column with less conflict, we move the queen to a random column.
+            self.moveQueen(conflictedQueen, minConflictCoordinate)
+            # Update the queen's position.
+            self.queens.remove(conflictedQueen)
+            self.queens.append(minConflictCoordinate)
+        elif minConflictCoordinate == conflictedQueen:
+            self.queens.remove(conflictedQueen)
+            self.queens.append(conflictedQueen)
 
     def getConflictedQueen(self) -> tuple:
         """
