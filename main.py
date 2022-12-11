@@ -10,7 +10,7 @@ def main():
     # Create a new instance of the class
     chessboard = Chess(height=n, width=n, maxSteps=100000)
     # Print the chessboard
-    chessboard.printChessboard()
+    # chessboard.printChessboard()
     chessboard.minConflict()
 
 
