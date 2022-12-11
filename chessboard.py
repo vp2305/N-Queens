@@ -3,7 +3,6 @@ from copy import deepcopy
 import numpy as np
 
 
-# For loop - createChessboard - Good enough, getNumberOfAttacks, updateColumnDiagonalQueens, minConflict, conflicts, getConflictedQueen, printChessboard
 class Chess:
     def __init__(self, height, width, maxSteps) -> None:
         self.height = height
@@ -104,7 +103,9 @@ class Chess:
                 return True
             else:
                 print(f"Step {i}:")
+                # Select a conflicted queen.
                 conflictedQueen: tuple = self.getConflictedQueen()
+                # Try to minimize the number of conflicts.
                 self.conflicts(conflictedQueen)
                 print("Number of attacking queens: ", self.numberOfAttacks)
                 # self.printChessboard()
